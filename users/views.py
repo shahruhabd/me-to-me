@@ -39,6 +39,7 @@ class UserLoginView(generics.GenericAPIView):
                 "user": {
                     "id": user.id,
                     "phone_number": user.phone_number,
+                    "iin": user.iin,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "middle_name": user.middle_name,

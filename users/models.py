@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, AbstractUser
 from django.db import models
 from django.utils import timezone
 
@@ -24,7 +24,7 @@ class UserManager(BaseUserManager):
 
         return self.create_user(phone_number, first_name, last_name, middle_name, password, **extra_fields)
 
-class User(AbstractBaseUser):
+class User(AbstractUser):
     phone_number = models.CharField(max_length=15, unique=True)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
@@ -34,11 +34,13 @@ class User(AbstractBaseUser):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
+    iin = models.CharField(max_length=12, null=True, blank=True, verbose_name="ИИН")
+
 
     objects = UserManager()
 
     USERNAME_FIELD = 'phone_number'
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'middle_name', 'date_of_birth']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'middle_name', 'date_of_birth', 'iin']
 
     def __str__(self):
         return self.phone_number
