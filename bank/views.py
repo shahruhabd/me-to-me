@@ -69,8 +69,8 @@ def transfer(request):
                 Transaction.objects.create(
                     user=user,
                     amount=amount,
-                    from_card=from_card,
-                    to_card=to_card,
+                    from_bank=from_card.bank,
+                    to_bank=to_card.bank,
                     type='TRANSFER',
                     status='COMPLETED'
                 )
