@@ -49,6 +49,7 @@ def transfer(request):
     amount = Decimal(request.data.get('amount'))  # Преобразуем в Decimal
     from_account = request.data.get('fromAccount')
     to_account = request.data.get('toAccount')
+    charge_amount = Decimal(request.data.get('chargeAmount', 0))  # Получаем значение chargeAmount
 
     try:
         user = User.objects.get(hashed_id=hashed_id)
@@ -69,6 +70,7 @@ def transfer(request):
                 Transaction.objects.create(
                     user=user,
                     amount=amount,
+                    chargeAmount=charge_amount,
                     from_bank=from_card.bank,
                     to_bank=to_card.bank,
                     type='TRANSFER',
