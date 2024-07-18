@@ -45,36 +45,33 @@ class UserTransactionsView(generics.ListAPIView):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def transfer(request):
-    hashed_id = request.data.get('hashed_id')
-    amount = Decimal(request.data.get('amount'))  # Преобразуем в Decimal
+    hashed_id = request.data.get('hashedId')
+    amount = request.data.get('amount')
     from_account = request.data.get('fromAccount')
     to_account = request.data.get('toAccount')
-    charge_amount = Decimal(request.data.get('chargeAmount', 0))  # Получаем значение chargeAmount
+    charge_amount = request.data.get('chargeAmount', 0)
 
     try:
         user = User.objects.get(hashed_id=hashed_id)
         from_card = Card.objects.get(card_number=from_account, user=user)
         to_card = Card.objects.get(card_number=to_account, user=user)
 
-        from_balance = Balance.objects.get(card=from_card)
-        to_balance = Balance.objects.get(card=to_card)
-
-        if from_balance.amount >= amount:
+        if from_card.balance.amount >= Decimal(amount):
             with db_transaction.atomic():
-                from_balance.amount -= amount
-                to_balance.amount += amount
+                from_card.balance.amount -= Decimal(amount)
+                to_card.balance.amount += Decimal(amount)
 
-                from_balance.save()
-                to_balance.save()
+                from_card.balance.save()
+                to_card.balance.save()
 
                 Transaction.objects.create(
                     user=user,
-                    amount=amount,
-                    chargeAmount=charge_amount,
+                    amount=Decimal(amount),
+                    chargeAmount=Decimal(charge_amount),
+                    type='TRANSFER',
+                    status='COMPLETED',
                     from_bank=from_card.bank,
                     to_bank=to_card.bank,
-                    type='TRANSFER',
-                    status='COMPLETED'
                 )
 
             return Response({'message': 'Transfer completed successfully'}, status=status.HTTP_200_OK)
@@ -85,7 +82,5 @@ def transfer(request):
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     except Card.DoesNotExist:
         return Response({'error': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
-    except Balance.DoesNotExist:
-        return Response({'error': 'Balance not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
