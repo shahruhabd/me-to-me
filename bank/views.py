@@ -44,23 +44,26 @@ class UserTransactionsView(generics.ListAPIView):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def transfer(request):
-    user_id = request.data.get('userId')
+    hashed_id = request.data.get('hashed_id')
     amount = request.data.get('amount')
     from_account = request.data.get('fromAccount')
     to_account = request.data.get('toAccount')
 
     try:
-        user = User.objects.get(id=user_id)
+        user = User.objects.get(hashed_id=hashed_id)
         from_card = Card.objects.get(card_number=from_account, user=user)
         to_card = Card.objects.get(card_number=to_account, user=user)
 
-        if from_card.balance >= amount:
-            with db_transaction.atomic():
-                from_card.balance -= amount
-                to_card.balance += amount
+        from_balance = Balance.objects.get(card=from_card)
+        to_balance = Balance.objects.get(card=to_card)
 
-                from_card.save()
-                to_card.save()
+        if from_balance.amount >= float(amount):
+            with db_transaction.atomic():
+                from_balance.amount -= float(amount)
+                to_balance.amount += float(amount)
+
+                from_balance.save()
+                to_balance.save()
 
                 Transaction.objects.create(
                     user=user,
@@ -79,5 +82,7 @@ def transfer(request):
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     except Card.DoesNotExist:
         return Response({'error': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Balance.DoesNotExist:
+        return Response({'error': 'Balance not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
