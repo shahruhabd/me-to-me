@@ -1,16 +1,18 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
+from hashids import Hashids
 
 User = get_user_model()
+hashids = Hashids(salt="your_secret_salt")
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'phone_number', 'iin', 'first_name', 'last_name', 'middle_name', 'password', 'date_of_birth', 'date_joined')
-        read_only_fields = ('id', 'date_joined')
+        fields = ('id', 'phone_number', 'iin', 'first_name', 'last_name', 'middle_name', 'password', 'date_of_birth', 'date_joined', 'hashed_id')
+        read_only_fields = ('id', 'date_joined', 'hashed_id')
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -22,6 +24,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             date_of_birth=validated_data['date_of_birth']
         )
+        user.hashed_id = hashids.encode(user.id)
+        user.save()
         return user
 
 class UserLoginSerializer(serializers.Serializer):
@@ -45,4 +49,4 @@ class UserLoginSerializer(serializers.Serializer):
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'phone_number', 'iin', 'first_name', 'last_name', 'middle_name', 'date_of_birth', 'date_joined')
+        fields = ('id', 'phone_number', 'iin', 'first_name', 'last_name', 'middle_name', 'date_of_birth', 'date_joined', 'hashed_id')

@@ -1,7 +1,7 @@
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken # type: ignore
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserListSerializer
 from django.contrib.auth import get_user_model
@@ -38,6 +38,7 @@ class UserLoginView(generics.GenericAPIView):
                 "access": str(refresh.access_token),
                 "user": {
                     "id": user.id,
+                    "hashed_id": user.hashed_id,
                     "phone_number": user.phone_number,
                     "iin": user.iin,
                     "first_name": user.first_name,
