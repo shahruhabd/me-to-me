@@ -1,10 +1,11 @@
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from .models import Bank, Card, Balance, Transaction
 from .serializers import BankSerializer, CardSerializer, BalanceSerializer, TransactionSerializer
 from users.models import User
+from django.db import transaction as db_transaction
 
 class BankListView(generics.ListCreateAPIView):
     queryset = Bank.objects.all()
@@ -41,6 +42,7 @@ class UserTransactionsView(generics.ListAPIView):
     
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def transfer(request):
     user_id = request.data.get('userId')
     amount = request.data.get('amount')
@@ -50,23 +52,24 @@ def transfer(request):
     try:
         user = User.objects.get(id=user_id)
         from_card = Card.objects.get(card_number=from_account, user=user)
-        to_card = Card.objects.get(card_number=to_account)
+        to_card = Card.objects.get(card_number=to_account, user=user)
 
         if from_card.balance >= amount:
-            from_card.balance -= amount
-            to_card.balance += amount
+            with db_transaction.atomic():
+                from_card.balance -= amount
+                to_card.balance += amount
 
-            from_card.save()
-            to_card.save()
+                from_card.save()
+                to_card.save()
 
-            Transaction.objects.create(
-                user=user,
-                amount=amount,
-                from_card=from_card,
-                to_card=to_card,
-                type='TRANSFER',
-                status='COMPLETED'
-            )
+                Transaction.objects.create(
+                    user=user,
+                    amount=amount,
+                    from_card=from_card,
+                    to_card=to_card,
+                    type='TRANSFER',
+                    status='COMPLETED'
+                )
 
             return Response({'message': 'Transfer completed successfully'}, status=status.HTTP_200_OK)
         else:
