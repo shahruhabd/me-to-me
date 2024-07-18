@@ -1,7 +1,7 @@
-from rest_framework import generics, permissions
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from .models import Bank, Card, Balance, Transaction
 from .serializers import BankSerializer, CardSerializer, BalanceSerializer, TransactionSerializer
 from users.models import User
@@ -38,3 +38,43 @@ class UserTransactionsView(generics.ListAPIView):
         hashed_id = self.kwargs['hashed_id']
         user = User.objects.get(hashed_id=hashed_id)
         return Transaction.objects.filter(user=user)
+    
+
+@api_view(['POST'])
+def transfer(request):
+    user_id = request.data.get('userId')
+    amount = request.data.get('amount')
+    from_account = request.data.get('fromAccount')
+    to_account = request.data.get('toAccount')
+
+    try:
+        user = User.objects.get(id=user_id)
+        from_card = Card.objects.get(card_number=from_account, user=user)
+        to_card = Card.objects.get(card_number=to_account)
+
+        if from_card.balance >= amount:
+            from_card.balance -= amount
+            to_card.balance += amount
+
+            from_card.save()
+            to_card.save()
+
+            Transaction.objects.create(
+                user=user,
+                amount=amount,
+                from_card=from_card,
+                to_card=to_card,
+                type='TRANSFER',
+                status='COMPLETED'
+            )
+
+            return Response({'message': 'Transfer completed successfully'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Insufficient balance'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Card.DoesNotExist:
+        return Response({'error': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
