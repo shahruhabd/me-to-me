@@ -6,6 +6,7 @@ from .models import Bank, Card, Balance, Transaction
 from .serializers import BankSerializer, CardSerializer, BalanceSerializer, TransactionSerializer
 from users.models import User
 from django.db import transaction as db_transaction
+from decimal import Decimal
 
 class BankListView(generics.ListCreateAPIView):
     queryset = Bank.objects.all()
@@ -45,7 +46,7 @@ class UserTransactionsView(generics.ListAPIView):
 @permission_classes([IsAuthenticated])
 def transfer(request):
     hashed_id = request.data.get('hashed_id')
-    amount = request.data.get('amount')
+    amount = Decimal(request.data.get('amount'))  # Преобразуем в Decimal
     from_account = request.data.get('fromAccount')
     to_account = request.data.get('toAccount')
 
@@ -57,10 +58,10 @@ def transfer(request):
         from_balance = Balance.objects.get(card=from_card)
         to_balance = Balance.objects.get(card=to_card)
 
-        if from_balance.amount >= float(amount):
+        if from_balance.amount >= amount:
             with db_transaction.atomic():
-                from_balance.amount -= float(amount)
-                to_balance.amount += float(amount)
+                from_balance.amount -= amount
+                to_balance.amount += amount
 
                 from_balance.save()
                 to_balance.save()
@@ -85,4 +86,4 @@ def transfer(request):
     except Balance.DoesNotExist:
         return Response({'error': 'Balance not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
