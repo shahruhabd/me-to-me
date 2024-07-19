@@ -11,14 +11,14 @@ class CardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Card
-        fields = ['id', 'bank', 'card_number', 'expiry_date', 'card_type']
+        fields = '__all__'
 
 class BalanceSerializer(serializers.ModelSerializer):
     card = CardSerializer()
 
     class Meta:
         model = Balance
-        fields = ['amount', 'currency', 'card']
+        fields = '__all__'
 
 class TransactionSerializer(serializers.ModelSerializer):
     from_bank = BankSerializer()

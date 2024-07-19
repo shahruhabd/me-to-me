@@ -53,8 +53,8 @@ def transfer(request):
 
     try:
         user = User.objects.get(hashed_id=hashed_id)
-        from_card = Card.objects.get(card_number=from_account, user__hashed_id=hashed_id)
-        to_card = Card.objects.get(card_number=to_account, user__hashed_id=hashed_id)
+        from_card = Card.objects.get(card_number=from_account, user=user)
+        to_card = Card.objects.get(card_number=to_account, user=user)
 
         if from_card.balance.amount >= Decimal(amount):
             with db_transaction.atomic():
